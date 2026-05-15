@@ -16,13 +16,31 @@ It does not rewrite sources, spoof platforms, fan out fake rows, or rename sessi
 
 ## Run
 
-Install the command from this directory:
+Install the command from this directory with npm:
 
 ```bash
 npm install -g .
 ```
 
-For local development, `npm link` works too.
+For local development with npm, `npm link` works too:
+
+```bash
+npm link
+```
+
+For local development with pnpm, use `pnpm link --global` so pnpm creates the global CLI shim for the package `"bin"` entry:
+
+```bash
+pnpm link --global
+```
+
+If pnpm has not configured a global bin directory yet:
+
+```bash
+pnpm setup
+```
+
+Then restart your shell and rerun `pnpm link --global`.
 
 Start Codex in the current directory with mobile remote support:
 
