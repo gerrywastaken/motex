@@ -19,6 +19,7 @@ installSignalHandlers();
 
 if (command === "bridge") {
   if (await appServerReady()) {
+    await enableRemoteControl();
     console.log(`Motex is already running at ${appServerUrl}`);
     console.log(`Resume with: ${cliName} resume`);
   } else {
@@ -86,6 +87,7 @@ const parsed = {
 
 async function runWithBridge(runTui) {
   if (await appServerReady()) {
+    await enableRemoteControl();
     process.exitCode = await runTui();
     return;
   }
@@ -126,6 +128,8 @@ async function runBridge(runTui = null) {
     process.exitCode = 1;
     return;
   }
+
+  await enableRemoteControl();
 
   if (runTui) {
     const code = await runTui();
@@ -207,6 +211,121 @@ async function appServerReady() {
   } catch {
     return false;
   }
+}
+
+async function enableRemoteControl() {
+  try {
+    const status = await callAppServerRemoteEnable();
+    if (status?.status === "connected") {
+      console.log(`remote:     connected as ${status.serverName ?? "this host"}`);
+    } else if (status?.status) {
+      console.log(`remote:     ${status.status}`);
+    }
+  } catch (error) {
+    const message = String(error?.message ?? error);
+    if (message.includes("Method not found") || message.includes("Unsupported method")) {
+      console.log("remote:     using legacy remote_control feature flag");
+      return;
+    }
+    console.error(`remote-control enable failed: ${message}`);
+    throw error;
+  }
+}
+
+function callAppServerRemoteEnable() {
+  return new Promise((resolve, reject) => {
+    if (typeof WebSocket !== "function") {
+      reject(new Error("Node.js 22 or newer is required to enable remote control"));
+      return;
+    }
+
+    const socket = new WebSocket(appServerUrl);
+    const pending = new Map();
+    let nextId = 1;
+    let latestStatus = null;
+
+    const timer = setTimeout(() => {
+      socket.close();
+      reject(new Error("timed out waiting for remote control to connect"));
+    }, 15_000);
+
+    function cleanup() {
+      clearTimeout(timer);
+      socket.close();
+    }
+
+    function fail(error) {
+      cleanup();
+      reject(error);
+    }
+
+    function request(method, params) {
+      const id = nextId++;
+      pending.set(id, method);
+      const message = { id, method };
+      if (params !== undefined) message.params = params;
+      socket.send(JSON.stringify(message));
+      return id;
+    }
+
+    socket.addEventListener("open", () => {
+      request("initialize", {
+        clientInfo: {
+          name: "motex",
+          title: "Motex",
+          version: "0.1.0",
+        },
+        capabilities: {
+          experimentalApi: true,
+        },
+      });
+    });
+
+    socket.addEventListener("message", (event) => {
+      handleAppServerMessage(JSON.parse(event.data));
+    });
+
+    socket.addEventListener("error", () => {
+      fail(new Error(`failed to connect to app-server at ${appServerUrl}`));
+    });
+
+    function handleAppServerMessage(message) {
+      if (message.method === "remoteControl/status/changed") {
+        latestStatus = message.params ?? null;
+        if (latestStatus?.status === "connected") {
+          cleanup();
+          resolve(latestStatus);
+        } else if (latestStatus?.status === "errored") {
+          fail(new Error("remote control status changed to errored"));
+        }
+        return;
+      }
+
+      if (message.id === undefined) return;
+
+      const method = pending.get(message.id);
+      pending.delete(message.id);
+
+      if (message.error) {
+        fail(new Error(message.error.message ?? JSON.stringify(message.error)));
+        return;
+      }
+
+      if (method === "initialize") {
+        socket.send(JSON.stringify({ method: "initialized", params: {} }));
+        request("remoteControl/enable");
+        return;
+      }
+
+      if (method === "remoteControl/enable") {
+        latestStatus = message.result ?? latestStatus;
+        if (latestStatus?.status === "connected") {
+          cleanup();
+          resolve(latestStatus);
+        }
+      }
+    }
+  });
 }
 
 function waitForExit(...children) {

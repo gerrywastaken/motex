@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Small local shim for using Codex mobile remote control with Codex app-server.",
+  "engines": {
+    "node": ">=22"
+  },
   "bin": {
     "motex": "./codex_mobile_remote.mjs"
   },

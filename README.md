@@ -16,6 +16,8 @@ It does not rewrite sources, spoof platforms, fan out fake rows, or rename sessi
 
 ## Run
 
+Motex requires Node.js 22 or newer.
+
 Install the command from this directory with npm:
 
 ```bash
