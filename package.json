@@ -2,7 +2,7 @@
   "name": "motex",
   "version": "0.1.0",
   "private": true,
-  "description": "Small wrapper that starts Codex mobile remote-control before opening Codex.",
+  "description": "Small local shim for using Codex mobile remote control with Codex app-server.",
   "engines": {
     "node": ">=22"
   },
@@ -11,6 +11,7 @@
   },
   "files": [
     "codex_mobile_remote.mjs",
+    "codex_mobile_relay.mjs",
     "README.md"
   ],
   "license": "MIT"
