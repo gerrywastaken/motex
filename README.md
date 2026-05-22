@@ -1,20 +1,18 @@
 # Motex
 
-This is the small version of the Linux/Windows Codex mobile remote-control experiment.
+Motex is a tiny wrapper that starts the Codex mobile remote-control daemon before
+opening the normal Codex CLI.
 
-It has two moving parts:
+It intentionally keeps Codex behavior familiar:
 
-- `codex_mobile_relay.mjs` proxies local Codex backend traffic to `https://chatgpt.com`.
-- `codex_mobile_remote.mjs` starts the relay, starts `codex app-server`, and runs a local TUI.
+- `motex` runs `codex`
+- `motex resume` runs `codex resume`
+- `motex resume --last` runs `codex resume --last`
+- `motex resume --all` only happens when you pass `--all`
 
-The relay makes one intentional change:
+Motex does not proxy traffic, rewrite sessions, or add hidden Codex flags.
 
-- When Codex returns a `thread/list` response, missing thread names are filled from the preview or cwd.
-- Threads marked `notLoaded` are changed to `idle` so the mobile app will render and open them.
-
-It does not rewrite sources, spoof platforms, fan out fake rows, or rename sessions permanently.
-
-## Run
+## Install
 
 Motex requires Node.js 22 or newer.
 
@@ -24,13 +22,14 @@ Install the command from this directory with npm:
 npm install -g .
 ```
 
-For local development with npm, `npm link` works too:
+For local development with npm:
 
 ```bash
 npm link
 ```
 
-For local development with pnpm, use `pnpm link --global` so pnpm creates the global CLI shim for the package `"bin"` entry:
+For local development with pnpm, use `pnpm link --global` so pnpm creates the
+global CLI shim for the package `"bin"` entry:
 
 ```bash
 pnpm link --global
@@ -44,7 +43,9 @@ pnpm setup
 
 Then restart your shell and rerun `pnpm link --global`.
 
-Start Codex in the current directory with mobile remote support:
+## Use
+
+Start Codex in the current directory with mobile remote-control enabled:
 
 ```bash
 motex
@@ -56,9 +57,7 @@ Pass normal Codex arguments through:
 motex -C ~/project "fix the failing test"
 ```
 
-When the Codex TUI exits, the wrapper stops the relay and app-server if it started them.
-
-Use Codex's resume flow through Motex:
+Use Codex's normal resume flow:
 
 ```bash
 motex resume
@@ -70,10 +69,31 @@ Resume the most recent session:
 motex resume --last
 ```
 
-Run only the bridge/app-server for mobile access:
+Show every saved session:
+
+```bash
+motex resume --all
+```
+
+Start the remote-control daemon without opening the TUI:
 
 ```bash
 motex bridge
+```
+
+Stop Codex remote-control:
+
+```bash
+motex stop
+```
+
+## Codex Binary
+
+Motex runs `codex` from your `PATH` (`codex.cmd` on Windows). To force a
+specific Codex binary:
+
+```bash
+MOTEX_CODEX_BIN=/path/to/codex motex
 ```
 
 ## Windows
@@ -82,20 +102,5 @@ Use the same commands from PowerShell:
 
 ```powershell
 motex
+motex resume
 ```
-
-The wrapper calls `codex.cmd` on Windows and `codex` elsewhere.
-
-## Trust Boundary
-
-This is a local proxy for authenticated ChatGPT/Codex backend traffic. Keep it bound to `127.0.0.1`.
-
-Do not expose either of these directly to a network:
-
-- `http://127.0.0.1:8791/backend-api`
-- `ws://127.0.0.1:4500`
-
-Logs are written to your temp directory:
-
-- `codex-mobile-relay.log`
-- `codex-mobile-app-server.log`
