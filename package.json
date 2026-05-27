@@ -7,11 +7,13 @@
     "node": ">=22"
   },
   "bin": {
-    "motex": "./codex_mobile_remote.mjs"
+    "motex": "./codex_mobile_remote.mjs",
+    "modex": "./modex.mjs"
   },
   "files": [
     "codex_mobile_remote.mjs",
     "codex_mobile_relay.mjs",
+    "modex.mjs",
     "README.md"
   ],
   "license": "MIT"
